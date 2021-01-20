@@ -44,8 +44,8 @@ class DistributeLatticeModule(torch.nn.Module):
     def __init__(self, experiment):
         super(DistributeLatticeModule, self).__init__()
         self.experiment=experiment
-    def forward(self, lattice, positions, values):
-        distributed, splatting_indices, splatting_weights = DistributeLattice.apply(lattice, positions, values )
+    def forward(self, lattice, positions, values, reset_hashmap = True):
+        distributed, splatting_indices, splatting_weights = DistributeLattice.apply(lattice, positions, values, reset_hashmap )
 
 
 
@@ -100,11 +100,6 @@ class ExpandLatticeModule(torch.nn.Module): #creates lattice vertiex not directl
         ls.set_values(lv)
 
         return lv, ls
-        
-
-
-        
-
 
 
 class ConvLatticeModule(torch.nn.Module):

@@ -48,10 +48,11 @@ class SplatLattice(Function):
 
 class DistributeLattice(Function):
     @staticmethod
-    def forward(ctx, lattice, positions, values):
+    def forward(ctx, lattice, positions, values, reset_hashmap = True):
 
-        lattice.begin_splat()
-        distributed, splatting_indices, splatting_weights = lattice.distribute(positions, values)
+        #TODO if reset_hashmap is true, we only want to clear the values
+        lattice.begin_splat(int(reset_hashmap))
+        distributed, splatting_indices, splatting_weights = lattice.distribute(positions, values, int(reset_hashmap))
 
         ctx.save_for_backward(splatting_indices, splatting_weights ) 
         ctx.lattice=lattice

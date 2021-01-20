@@ -46,6 +46,13 @@ void HashTable::init(int pos_dim, int val_dim){
 
 }
 
+void HashTable::clear_only_values(){
+    if(is_initialized()){
+        m_values_tensor.fill_(0);
+        //m_nr_filled_is_dirty=true;
+    }
+}
+
 void HashTable::clear(){
     if(is_initialized()){
         m_values_tensor.fill_(0);
