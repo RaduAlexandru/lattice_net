@@ -52,10 +52,10 @@ class DistributeLattice(Function):
 
         #TODO if reset_hashmap is true, we only want to clear the values
         lattice.begin_splat(int(reset_hashmap))
-        distributed, splatting_indices, splatting_weights = lattice.distribute(positions, values, int(reset_hashmap))
+        distributed_lattice, distributed, splatting_indices, splatting_weights = lattice.distribute(positions, values, int(reset_hashmap))
 
         ctx.save_for_backward(splatting_indices, splatting_weights ) 
-        ctx.lattice=lattice
+        # ctx.lattice=lattice
         ctx.pos_dim=lattice.pos_dim() 
         ctx.val_dim=lattice.val_dim() 
         ctx.nr_positions=positions.shape[0]
@@ -68,7 +68,7 @@ class DistributeLattice(Function):
         # print("FORWARD----------------------   splatting_indices has max ", splatting_indices.max())
 
 
-        return distributed, splatting_indices, splatting_weights
+        return  LatticeWrapper.wrap(distributed_lattice) , distributed, splatting_indices, splatting_weights
 
 
     @staticmethod
@@ -156,7 +156,6 @@ class ConvIm2RowLattice(Function):
 
         convolved_lattice=lattice.convolve_im2row_standalone(filter_bank, dilation, lattice, False)
         
-
         # values=convolved_lattice.values()
 
 
