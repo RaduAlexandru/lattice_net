@@ -147,6 +147,7 @@ WORKDIR /
 # #need to make it own by myself and not by root because otherwise when we run python it will not access it
 WORKDIR /
 RUN git clone --recursive https://github.com/pytorch/vision /opt/vision
+RUN pip3 install typing-extensions 
 WORKDIR /opt/vision
 RUN git checkout tags/v0.8.2
 RUN git submodule sync
