@@ -53,8 +53,9 @@ class DistributeLattice(Function):
         #TODO if reset_hashmap is true, we only want to clear the values
         lattice.begin_splat(int(reset_hashmap))
         distributed_lattice, distributed, splatting_indices, splatting_weights = lattice.distribute(positions, values, int(reset_hashmap))
-
-        ctx.save_for_backward(splatting_indices, splatting_weights ) 
+        
+        if values.requires_grad:
+            ctx.save_for_backward(splatting_indices, splatting_weights ) 
         # ctx.lattice=lattice
         ctx.pos_dim=lattice.pos_dim() 
         ctx.val_dim=lattice.val_dim() 
@@ -158,8 +159,8 @@ class ConvIm2RowLattice(Function):
         
         # values=convolved_lattice.values()
 
-
-        ctx.save_for_backward(filter_bank, lattice_values ) 
+        if lattice_values.requires_grad:
+            ctx.save_for_backward(filter_bank, lattice_values ) 
         ctx.lattice=lattice
         # ctx.lattice_neighbours_structure=lattice_neighbours_structure
         ctx.filter_extent=int(filter_bank.shape[0]/lattice_values.shape[1])
@@ -240,8 +241,8 @@ class CoarsenLattice(Function):
         convolved_lattice=coarsened_lattice.convolve_im2row_standalone(filter_bank, dilation, lattice_fine_structure, False)
      
 
-        
-        ctx.save_for_backward(filter_bank, lattice_fine_values ) 
+        if lattice_fine_values.requires_grad:
+            ctx.save_for_backward(filter_bank, lattice_fine_values ) 
         ctx.coarsened_lattice=coarsened_lattice
         ctx.lattice_fine_structure=lattice_fine_structure
         ctx.filter_extent=int(filter_bank.shape[0]/lattice_fine_values.shape[1])
@@ -308,8 +309,8 @@ class FinefyLattice(Function):
         # values=convolved_lattice_py.values()
         # convolved_lattice_py.set_values(values)
 
-        
-        ctx.save_for_backward(filter_bank, lattice_coarse_values) 
+        if lattice_coarse_values.requires_grad:
+            ctx.save_for_backward(filter_bank, lattice_coarse_values) 
         ctx.lattice_fine_structure=convolved_lattice
         ctx.lattice_coarse_structure=lattice_coarse_structure
         ctx.filter_extent=int(filter_bank.shape[0]/lattice_coarse_values.shape[1])
@@ -377,7 +378,8 @@ class SliceLattice(Function):
         else: 
             sliced_values=lattice_structure.slice_standalone_with_precomputation(positions, splatting_indices, splatting_weights  )
 
-        ctx.save_for_backward(positions, sliced_values, splatting_indices, splatting_weights )
+        if lattice_values.requires_grad:
+            ctx.save_for_backward(positions, sliced_values, splatting_indices, splatting_weights )
         ctx.lattice_structure = lattice_structure
 
 
@@ -425,8 +427,8 @@ class SliceClassifyLattice(Function):
 
         class_logits=lattice_structure.slice_classify_with_precomputation(positions, delta_weights, linear_clasify_weight, linear_clasify_bias, nr_classes, splatting_indices, splatting_weights)
 
-
-        ctx.save_for_backward(positions, initial_values, delta_weights, linear_clasify_weight, linear_clasify_bias, splatting_indices, splatting_weights )
+        if lattice_values.requires_grad:
+            ctx.save_for_backward(positions, initial_values, delta_weights, linear_clasify_weight, linear_clasify_bias, splatting_indices, splatting_weights )
         ctx.lattice_structure = lattice_structure
         ctx.val_dim=lattice_values.shape[1]
         ctx.nr_classes=nr_classes
@@ -473,8 +475,8 @@ class GatherLattice(Function):
 
         gathered_values=lattice_structure.gather_standalone_with_precomputation(positions, splatting_indices, splatting_weights)
 
-    
-        ctx.save_for_backward(positions, splatting_indices, splatting_weights)
+        if lattice_values.requires_grad:
+            ctx.save_for_backward(positions, splatting_indices, splatting_weights)
         ctx.lattice_structure = lattice_structure
         ctx.val_dim=lattice_values.shape[1]
 
