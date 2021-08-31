@@ -56,6 +56,7 @@ PYBIND11_MODULE(latticenet, m) {
     // .def("depthwise_convolve",  &Lattice::depthwise_convolve )
     .def("convolve_im2row_standalone",  &Lattice::convolve_im2row_standalone )
     .def("im2row",  &Lattice::im2row )
+    .def("im2rowindices",  &Lattice::im2rowindices )
     .def("row2im",  &Lattice::row2im )
     .def("just_create_verts",  &Lattice::just_create_verts )
     .def("create_coarse_verts",  &Lattice::create_coarse_verts )

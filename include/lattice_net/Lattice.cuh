@@ -34,7 +34,7 @@ public:
 
     void begin_splat(int reset_hashmap = 1); //clears the hashtable and new_values matris so we can use them as fresh
     // void begin_splat_modify_only_values(); //clears the hashtable and new_values matris so we can use them as fresh
-    std::tuple<torch::Tensor, torch::Tensor> splat_standalone(torch::Tensor& positions_raw, torch::Tensor& values); 
+    std::tuple<torch::Tensor, torch::Tensor> splat_standalone(torch::Tensor& positions_raw, torch::Tensor& values);
     std::tuple<torch::Tensor, torch::Tensor> just_create_verts(torch::Tensor& positions_raw,  const bool return_indices_and_weights );  //creates splatting indices and splatting weights
     std::shared_ptr<Lattice> expand(torch::Tensor& positions_raw, const int point_multiplier, const float noise_stddev, const bool expand_values );
     std::tuple<std::shared_ptr<Lattice>, torch::Tensor, torch::Tensor, torch::Tensor> distribute(torch::Tensor& positions_raw, torch::Tensor& values, int reset_hashmap = 1); 
@@ -54,6 +54,7 @@ public:
     std::shared_ptr<Lattice> convolve_im2row_standalone(torch::Tensor& filter_bank, const int dilation, std::shared_ptr<Lattice> lattice_neighbours, const bool flip_neighbours);
     // std::shared_ptr<Lattice> depthwise_convolve(torch::Tensor& filter_bank, const int dilation, std::shared_ptr<Lattice> lattice_neighbours, const bool use_center_vertex, const bool flip_neighbours);
     torch::Tensor im2row(std::shared_ptr<Lattice> lattice_neighbours, const int filter_extent, const int dilation, const bool flip_neighbours);
+    torch::Tensor im2rowindices(std::shared_ptr<Lattice> lattice_neighbours, const int filter_extent, const int dilation, const bool flip_neighbours);
 
     std::shared_ptr<Lattice> create_coarse_verts();  //creates another lattice which would be the result of splatting the positions/2. The values of the new coarse lattice are set to 0
     std::shared_ptr<Lattice> create_coarse_verts_naive(torch::Tensor& positions_raw); //the previous one causes some positions to end up in empty space for some reason, so instead we use this to create vertices around all the positions, will be slower but possibly more correct

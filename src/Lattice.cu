@@ -190,7 +190,7 @@ std::tuple<torch::Tensor, torch::Tensor> Lattice::splat_standalone(torch::Tensor
     int nr_positions=positions_raw.size(0);
     int pos_dim=positions_raw.size(1);
     int val_dim=values.size(1);
-
+    
     m_positions=positions_raw; //raw positions which created this lattice
 
 
@@ -226,10 +226,9 @@ std::tuple<torch::Tensor, torch::Tensor> Lattice::splat_standalone(torch::Tensor
     
     TIME_END("splat");
 
-    // VLOG(3) << "after splatting nr_verts is " << nr_lattice_vertices();
+    VLOG(3) << "after splatting nr_verts is " << nr_lattice_vertices();
     auto ret = std::make_tuple (splatting_indices_tensor, splatting_weights_tensor ); 
-    return ret;
-  
+    return ret;  
 }
 
 
@@ -281,6 +280,7 @@ std::tuple<torch::Tensor, torch::Tensor> Lattice::just_create_verts(torch::Tenso
   
 }
 
+
 std::shared_ptr<Lattice> Lattice::expand(torch::Tensor& positions_raw, const int point_multiplier, const float noise_stddev, const bool expand_values ){
     check_positions(positions_raw);
     int pos_dim=positions_raw.size(1);
@@ -306,6 +306,7 @@ std::shared_ptr<Lattice> Lattice::expand(torch::Tensor& positions_raw, const int
 
     std::shared_ptr<Lattice> expanded_lattice=create(this); //create a lattice with no config but takes the config from this one
     expanded_lattice->m_name="expanded_lattice";
+    //LOG(WARNING) << "Creating lattice: expanded_lattice";
     expanded_lattice->m_hash_table->m_values_tensor=torch::zeros({1, this->val_dim()}, torch::dtype(torch::kFloat32).device(torch::kCUDA, 0) ); //we just create some dummy values just so that the clear that we will do not will not destroy the current values. We will create the values when we know how many vertices we have
     expanded_lattice->m_hash_table->m_keys_tensor= this->m_hash_table->m_keys_tensor.clone();
     expanded_lattice->m_hash_table->m_entries_tensor= this->m_hash_table->m_entries_tensor.clone();
@@ -371,6 +372,7 @@ std::tuple<std::shared_ptr<Lattice>, torch::Tensor, torch::Tensor, torch::Tensor
         distributed_lattice->m_hash_table->m_values_tensor=this->m_hash_table->m_values_tensor.clone();
     }
     distributed_lattice->m_name="distributed_lattice";
+    //LOG(WARNING) << "Creating lattice: distributed_lattice";
     distributed_lattice->m_hash_table->update_impl();
     
     if(reset_hashmap == 1)   {
@@ -435,6 +437,7 @@ std::shared_ptr<Lattice> Lattice::convolve_im2row_standalone(torch::Tensor& filt
 
     std::shared_ptr<Lattice> convolved_lattice=create(this); //create a lattice with no config but takes the config from this one
     convolved_lattice->m_name="convolved_lattice";
+    //LOG(WARNING) << "Creating lattice: convolved_lattice";
 
 
     filter_bank=filter_bank.to("cuda");
@@ -564,6 +567,40 @@ std::shared_ptr<Lattice> Lattice::convolve_im2row_standalone(torch::Tensor& filt
 
 // }
 
+torch::Tensor Lattice::im2rowindices(std::shared_ptr<Lattice> lattice_neighbours, const int filter_extent, const int dilation, const bool flip_neighbours){
+
+    if (!lattice_neighbours){
+        lattice_neighbours=shared_from_this();
+    }
+
+    CHECK(filter_extent == get_filter_extent(1) ) << "Filters should convolve over all the neighbours in the 1 hop plus the center vertex lattice. So the filter extent should be " << get_filter_extent(1) << ". However it is" << filter_extent;
+
+
+    
+    //this lattice should be coarser (so a higher lvl) or finer(lower lvl) or at least at the same lvl as the lattice neigbhours. But the differnce should be at most 1 level
+    CHECK(std::abs(m_lvl-lattice_neighbours->m_lvl)<=1) << "the difference in levels between query and neigbhours lattice should be only 1 or zero, so the query should be corser by 1 level or finer by 1 lvl with respect to the neighbours. Or if they are at the same level then nothing needs to be done. However the current lattice lvl is " << m_lvl << " and the neighbours lvl is " << lattice_neighbours->m_lvl;
+
+    // VLOG(3) <<"starting convolved im2row_standlaone. The current lattice has nr_vertices_lattices" << nr_lattice_vertices();
+    CHECK(nr_lattice_vertices()!=0) << "Why does this current lattice have zero nr_filled?";
+    int nr_vertices=nr_lattice_vertices();
+    int cur_values_size=m_hash_table->m_values_tensor.size(0);
+    // CHECK(nr_vertices==cur_values_size) << "the nr of lattice vertices should be the same as the values tensor has rows. However the nr lattice vertices is " << nr_vertices << " and values has nr of rows " << cur_values_size;
+
+
+    // TIME_START("create_lattice_rowified");
+    // if( !m_lattice_rowified.defined() || m_lattice_rowified.size(0)!=nr_vertices || m_lattice_rowified.size(1)!=filter_extent*m_val_dim  ){
+    Tensor lattice_rowified=torch::zeros({nr_vertices, filter_extent* lattice_neighbours->val_dim() }, torch::dtype(torch::kInt32).device(torch::kCUDA, 0) );
+    // }else{
+        // m_lattice_rowified.fill_(0);
+    // }
+
+
+    m_impl->im2rowindices(nr_vertices, this->pos_dim(), lattice_neighbours->val_dim(), dilation, lattice_rowified.data_ptr<int>(), filter_extent, *(m_hash_table->m_impl), *(lattice_neighbours->m_hash_table->m_impl), m_lvl, lattice_neighbours->m_lvl, flip_neighbours, false);
+
+    return lattice_rowified;
+
+}
+
 torch::Tensor Lattice::im2row(std::shared_ptr<Lattice> lattice_neighbours, const int filter_extent, const int dilation, const bool flip_neighbours){
 
     if (!lattice_neighbours){
@@ -629,6 +666,7 @@ std::shared_ptr<Lattice> Lattice::create_coarse_verts(){
 
     std::shared_ptr<Lattice> coarse_lattice=create(this); //create a lattice with no config but takes the config from this one
     coarse_lattice->m_name="coarse_lattice";
+    //LOG(WARNING) << "Creating lattice: coarse_lattice_1";
     coarse_lattice->m_lvl=m_lvl+1;
     coarse_lattice->m_sigmas_tensor=m_sigmas_tensor.clone()*2.0; //the sigma for the coarser one is double. This is done so if we slice at this lattice we scale the positions with the correct sigma
     for(size_t i=0; i<m_sigmas.size(); i++){
@@ -668,6 +706,7 @@ std::shared_ptr<Lattice> Lattice::create_coarse_verts_naive(torch::Tensor& posit
 
     std::shared_ptr<Lattice> coarse_lattice=create(this); //create a lattice with no config but takes the config from this one
     coarse_lattice->m_name="coarse_lattice";
+    //LOG(WARNING) << "Creating lattice: coarse_lattice_2";
     coarse_lattice->m_lvl=m_lvl+1;
     coarse_lattice->m_sigmas_tensor=m_sigmas_tensor.clone()*2.0; //the sigma for the coarser one is double. This is done so if we slice at this lattice we scale the positions with the correct sigma
     coarse_lattice->m_sigmas=m_sigmas;
