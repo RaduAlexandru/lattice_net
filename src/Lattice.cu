@@ -366,16 +366,6 @@ std::tuple<std::shared_ptr<Lattice>, torch::Tensor, torch::Tensor, torch::Tensor
     splatting_indices_tensor.fill_(-1);
     splatting_weights_tensor.fill_(-1);
 
-
-    std::shared_ptr<Lattice> distributed_lattice=create(this); //create a lattice with no config but takes the config from this one
-    distributed_lattice->m_hash_table->m_keys_tensor=this->m_hash_table->m_keys_tensor.clone();
-    distributed_lattice->m_hash_table->m_entries_tensor=this->m_hash_table->m_entries_tensor.clone();
-    if ( this->m_hash_table->m_values_tensor.defined()){
-        distributed_lattice->m_hash_table->m_values_tensor=this->m_hash_table->m_values_tensor.clone();
-    }
-    distributed_lattice->m_name="distributed_lattice";
-    distributed_lattice->m_hash_table->update_impl();
-   
     std::shared_ptr<Lattice> distributed_lattice=create(this); //create a lattice with no config but takes the config from this one
     distributed_lattice->m_hash_table->m_keys_tensor=this->m_hash_table->m_keys_tensor.clone();
     distributed_lattice->m_hash_table->m_entries_tensor=this->m_hash_table->m_entries_tensor.clone();
