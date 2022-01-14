@@ -175,8 +175,9 @@ void Lattice::check_positions_and_values(const torch::Tensor& positions_raw, con
 
 
 
-void Lattice::begin_splat(int reset_hashmap){
-    if(reset_hashmap == 1)   {
+void Lattice::begin_splat(const bool reset_hashmap ){
+    // m_hash_table->clear(); 
+    if(reset_hashmap)   {
         m_hash_table->clear(); 
     }else {
         m_hash_table->clear_only_values();
@@ -341,7 +342,7 @@ std::shared_ptr<Lattice> Lattice::expand(torch::Tensor& positions_raw, const int
 }
 
 
-std::tuple<std::shared_ptr<Lattice>, torch::Tensor, torch::Tensor, torch::Tensor> Lattice::distribute(torch::Tensor& positions_raw, torch::Tensor& values, int reset_hashmap){
+std::tuple<std::shared_ptr<Lattice>, torch::Tensor, torch::Tensor, torch::Tensor> Lattice::distribute(torch::Tensor& positions_raw, torch::Tensor& values, const bool reset_hashmap){
     check_positions_and_values(positions_raw, values);
     int nr_positions=positions_raw.size(0);
     int pos_dim=positions_raw.size(1);
@@ -364,6 +365,16 @@ std::tuple<std::shared_ptr<Lattice>, torch::Tensor, torch::Tensor, torch::Tensor
     Tensor splatting_weights_tensor = torch::empty({nr_positions*(pos_dim+1) }, torch::dtype(torch::kFloat32).device(torch::kCUDA, 0) );
     splatting_indices_tensor.fill_(-1);
     splatting_weights_tensor.fill_(-1);
+
+
+    std::shared_ptr<Lattice> distributed_lattice=create(this); //create a lattice with no config but takes the config from this one
+    distributed_lattice->m_hash_table->m_keys_tensor=this->m_hash_table->m_keys_tensor.clone();
+    distributed_lattice->m_hash_table->m_entries_tensor=this->m_hash_table->m_entries_tensor.clone();
+    if ( this->m_hash_table->m_values_tensor.defined()){
+        distributed_lattice->m_hash_table->m_values_tensor=this->m_hash_table->m_values_tensor.clone();
+    }
+    distributed_lattice->m_name="distributed_lattice";
+    distributed_lattice->m_hash_table->update_impl();
    
     std::shared_ptr<Lattice> distributed_lattice=create(this); //create a lattice with no config but takes the config from this one
     distributed_lattice->m_hash_table->m_keys_tensor=this->m_hash_table->m_keys_tensor.clone();
@@ -375,7 +386,8 @@ std::tuple<std::shared_ptr<Lattice>, torch::Tensor, torch::Tensor, torch::Tensor
     //LOG(WARNING) << "Creating lattice: distributed_lattice";
     distributed_lattice->m_hash_table->update_impl();
     
-    if(reset_hashmap == 1)   {
+    // m_hash_table->clear();
+    if(reset_hashmap)   {
         distributed_lattice->m_hash_table->clear(); 
     }else {
         distributed_lattice->m_hash_table->clear_only_values();
@@ -1383,7 +1395,7 @@ void Lattice::set_values(const torch::Tensor& new_values){
     // update_impl();
     m_hash_table->set_values(new_values);
     CHECK(new_values.size(0)==nr_lattice_vertices()) << "The nr of rows in the new values does not correspond to the nr_lattice_vertices. Nr of rows is " << new_values.size(0) << " and nr lattice vertices is " << nr_lattice_vertices();
-} 
+}
 void Lattice::set_positions( const torch::Tensor& positions_raw ){
     m_positions=positions_raw;
 }

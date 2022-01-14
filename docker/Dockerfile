@@ -2,10 +2,8 @@
 
 # FROM pytorch/pytorch:1.4-cuda10.1-cudnn7-devel
 
-# FROM nvidia/cuda:10.0-cudnn7-devel-ubuntu18.04
+#FROM nvidia/cuda:10.0-cudnn7-devel-ubuntu18.04
 FROM nvidia/cuda:11.1.1-cudnn8-devel-ubuntu18.04
-
-
 
 # ENV PATH /usr/local/nvidia/bin:/usr/local/cuda/bin:${PATH}
 ENV NVIDIA_VISIBLE_DEVICES \
